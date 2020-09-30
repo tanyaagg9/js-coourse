@@ -1,189 +1,111 @@
-class Product {
-  // title = 'DEFAULT';
-  // imageUrl;
-  // description;
-  // price;
+const listElement = document.querySelector('.posts');
+const postTemplate = document.getElementById('single-post');
+const form = document.querySelector('#new-post form');
+const fetchButton = document.querySelector('#available-posts button');
+const postList = document.querySelector('ul');
 
-  constructor(title, image, desc, price) {
-    this.title = title;
-    this.imageUrl = image;
-    this.description = desc;
-    this.price = price;
-  }
-}
+function sendHttpRequest(method, url, data) {
+  // const promise = new Promise((resolve, reject) => {
+  // const xhr = new XMLHttpRequest();
+  // xhr.setRequestHeader('Content-Type', 'application/json');
 
-class ElementAttribute {
-  constructor(attrName, attrValue) {
-    this.name = attrName;
-    this.value = attrValue;
-  }
-}
+  //   xhr.open(method, url);
 
-class Component {
-  constructor(renderHookId, shouldRender = true) {
-    this.hookId = renderHookId;
-    if (shouldRender) {
-      this.render();
-    }
-  }
+  //   xhr.responseType = 'json';
 
-  render() {}
+  //   xhr.onload = function() {
+  //     if (xhr.status >= 200 && xhr.status < 300) {
+  //       resolve(xhr.response);
+  //     } else {
+  // xhr.response;
+  //       reject(new Error('Something went wrong!'));
+  //     }
+  //     // const listOfPosts = JSON.parse(xhr.response);
+  //   };
 
-  createRootElement(tag, cssClasses, attributes) {
-    const rootElement = document.createElement(tag);
-    if (cssClasses) {
-      rootElement.className = cssClasses;
-    }
-    if (attributes && attributes.length > 0) {
-      for (const attr of attributes) {
-        rootElement.setAttribute(attr.name, attr.value);
+  //   xhr.onerror = function() {
+  //     reject(new Error('Failed to send request!'));
+  //   };
+
+  //   xhr.send(JSON.stringify(data));
+  // });
+
+  // return promise;
+  return fetch(url, {
+    method: method,
+    // body: JSON.stringify(data),
+    body: data
+    // headers: {
+    //   'Content-Type': 'application/json'
+    // }
+  })
+    .then(response => {
+      if (response.status >= 200 && response.status < 300) {
+        return response.json();
+      } else {
+        return response.json().then(errData => {
+          console.log(errData);
+          throw new Error('Something went wrong - server-side.');
+        });
       }
-    }
-    document.getElementById(this.hookId).append(rootElement);
-    return rootElement;
-  }
+    })
+    .catch(error => {
+      console.log(error);
+      throw new Error('Something went wrong!');
+    });
 }
 
-class ShoppingCart extends Component {
-  items = [];
-
-  set cartItems(value) {
-    this.items = value;
-    this.totalOutput.innerHTML = `<h2>Total: \$${this.totalAmount.toFixed(
-      2
-    )}</h2>`;
-  }
-
-  get totalAmount() {
-    const sum = this.items.reduce(
-      (prevValue, curItem) => prevValue + curItem.price,
-      0
+async function fetchPosts() {
+  try {
+    const response = await axios.get(
+      'https://jsonplaceholder.typicode.com/posts'
     );
-    return sum;
-  }
-
-  constructor(renderHookId) {
-    super(renderHookId, false);
-    this.orderProducts = () => {
-      console.log('Ordering...');
-      console.log(this.items);
-    };
-    this.render();
-  }
-
-  addProduct(product) {
-    const updatedItems = [...this.items];
-    updatedItems.push(product);
-    this.cartItems = updatedItems;
-  }
-
-  render() {
-    const cartEl = this.createRootElement('section', 'cart');
-    cartEl.innerHTML = `
-      <h2>Total: \$${0}</h2>
-      <button>Order Now!</button>
-    `;
-    const orderButton = cartEl.querySelector('button');
-    // orderButton.addEventListener('click', () => this.orderProducts());
-    orderButton.addEventListener('click', this.orderProducts);
-    this.totalOutput = cartEl.querySelector('h2');
-  }
-}
-
-class ProductItem extends Component {
-  constructor(product, renderHookId) {
-    super(renderHookId, false);
-    this.product = product;
-    this.render();
-  }
-
-  addToCart() {
-    App.addProductToCart(this.product);
-  }
-
-  render() {
-    const prodEl = this.createRootElement('li', 'product-item');
-    prodEl.innerHTML = `
-        <div>
-          <img src="${this.product.imageUrl}" alt="${this.product.title}" >
-          <div class="product-item__content">
-            <h2>${this.product.title}</h2>
-            <h3>\$${this.product.price}</h3>
-            <p>${this.product.description}</p>
-            <button>Add to Cart</button>
-          </div>
-        </div>
-      `;
-    const addCartButton = prodEl.querySelector('button');
-    addCartButton.addEventListener('click', this.addToCart.bind(this));
-  }
-}
-
-class ProductList extends Component {
-  #products = [];
-
-  constructor(renderHookId) {
-    super(renderHookId, false);
-    this.render();
-    this.fetchProducts();
-  }
-
-  fetchProducts() {
-    this.#products = [
-      new Product(
-        'A Pillow',
-        'https://www.maxpixel.net/static/photo/2x/Soft-Pillow-Green-Decoration-Deco-Snuggle-1241878.jpg',
-        'A soft pillow!',
-        19.99
-      ),
-      new Product(
-        'A Carpet',
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Ardabil_Carpet.jpg/397px-Ardabil_Carpet.jpg',
-        'A carpet which you might like - or not.',
-        89.99
-      )
-    ];
-    this.renderProducts();
-  }
-
-  renderProducts() {
-    for (const prod of this.#products) {
-      new ProductItem(prod, 'prod-list');
+    const listOfPosts = response.data;
+    for (const post of listOfPosts) {
+      const postEl = document.importNode(postTemplate.content, true);
+      postEl.querySelector('h2').textContent = post.title.toUpperCase();
+      postEl.querySelector('p').textContent = post.body;
+      postEl.querySelector('li').id = post.id;
+      listElement.append(postEl);
     }
-  }
-
-  render() {
-    this.createRootElement('ul', 'product-list', [
-      new ElementAttribute('id', 'prod-list')
-    ]);
-    if (this.#products && this.#products.length > 0) {
-      this.renderProducts();
-    }
+  } catch (error) {
+    alert(error.message);
+    console.log(error.response);
   }
 }
 
-class Shop {
-  constructor() {
-    this.render();
-  }
+async function createPost(title, content) {
+  const userId = Math.random();
+  const post = {
+    title: title,
+    body: content,
+    userId: userId
+  };
 
-  render() {
-    this.cart = new ShoppingCart('app');
-    new ProductList('app');
-  }
+  const fd = new FormData(form);
+  // fd.append('title', title);
+  // fd.append('body', content);
+  fd.append('userId', userId);
+
+  const response = await axios.post(
+    'https://jsonplaceholder.typicode.com/posts',
+    fd
+  );
+  console.log(response);
 }
 
-class App {
-  static cart;
+fetchButton.addEventListener('click', fetchPosts);
+form.addEventListener('submit', event => {
+  event.preventDefault();
+  const enteredTitle = event.currentTarget.querySelector('#title').value;
+  const enteredContent = event.currentTarget.querySelector('#content').value;
 
-  static init() {
-    const shop = new Shop();
-    this.cart = shop.cart;
+  createPost(enteredTitle, enteredContent);
+});
+
+postList.addEventListener('click', event => {
+  if (event.target.tagName === 'BUTTON') {
+    const postId = event.target.closest('li').id;
+    axios.delete(`https://jsonplaceholder.typicode.com/posts/${postId}`);
   }
-
-  static addProductToCart(product) {
-    this.cart.addProduct(product);
-  }
-}
-
-App.init();
+});
